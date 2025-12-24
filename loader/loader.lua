@@ -1,6 +1,6 @@
 --========================
--- SVJ SCRIPT HUB v6
--- ESP ORE + TP FLAG + FAST HEALTH + HEARTS TOGGLE
+-- SVJ SCRIPT HUB v6.1
+-- ESP ORE + TP FLAG + FAST HEALTH 500 + HEARTS TOGGLE
 --========================
 
 -- SERVICES
@@ -35,14 +35,12 @@ local function addESP(model)
 	ESPs[model] = h
 end
 
--- Existing Ore
 for _,v in ipairs(workspace:GetDescendants()) do
 	if v:IsA("Model") and v.Name == "Ore" then
 		addESP(v)
 	end
 end
 
--- New Ore
 workspace.DescendantAdded:Connect(function(v)
 	if v:IsA("Model") and v.Name == "Ore" then
 		task.wait(0.05)
@@ -51,11 +49,11 @@ workspace.DescendantAdded:Connect(function(v)
 end)
 
 --========================
--- FAST HEALTH
+-- FAST HEALTH (500 HP)
 --========================
 
 local GOD_HEALTH = false
-local MAX_HEALTH = 50
+local MAX_HEALTH = 500
 
 humanoid.HealthChanged:Connect(function(hp)
 	if GOD_HEALTH and hp < humanoid.MaxHealth then
@@ -67,11 +65,9 @@ end)
 -- GUI
 --========================
 
-local gui = Instance.new("ScreenGui")
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "SVJHubGUI"
-gui.Parent = player:WaitForChild("PlayerGui")
 
--- MAIN FRAME
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.fromScale(0.25, 0.55)
 frame.Position = UDim2.fromScale(0.05, 0.22)
@@ -81,7 +77,6 @@ frame.Active = true
 frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,16)
 
--- TITLE
 local title = Instance.new("TextLabel", frame)
 title.Size = UDim2.fromScale(1,0.1)
 title.BackgroundTransparency = 1
@@ -137,7 +132,6 @@ tpBtn.MouseButton1Click:Connect(function()
 	flagFrame.Visible = not flagFrame.Visible
 end)
 
--- RED
 local redBtn = Instance.new("TextButton", flagFrame)
 redBtn.Size = UDim2.fromScale(0.8,0.4)
 redBtn.Position = UDim2.fromScale(0.1,0.05)
@@ -152,7 +146,6 @@ redBtn.MouseButton1Click:Connect(function()
 	hrp.CFrame = CFrame.new(574, 640.503, -5664) * CFrame.new(0,3,0)
 end)
 
--- GREEN
 local greenBtn = Instance.new("TextButton", flagFrame)
 greenBtn.Size = UDim2.fromScale(0.8,0.4)
 greenBtn.Position = UDim2.fromScale(0.1,0.55)
@@ -186,7 +179,7 @@ godBtn.MouseButton1Click:Connect(function()
 	if GOD_HEALTH then
 		humanoid.MaxHealth = MAX_HEALTH
 		humanoid.Health = MAX_HEALTH
-		godBtn.Text = "FAST HEALTH : ON"
+		godBtn.Text = "FAST HEALTH : ON (500)"
 		godBtn.BackgroundColor3 = Color3.fromRGB(80,255,80)
 	else
 		humanoid.MaxHealth = 100
@@ -202,7 +195,7 @@ end)
 
 local healthUI
 pcall(function()
-	healthUI = player:WaitForChild("PlayerGui"):WaitForChild("Scene_MainTop"):WaitForChild("Health")
+	healthUI = player.PlayerGui.Scene_MainTop.Health
 end)
 
 local heartsVisible = true
@@ -222,9 +215,6 @@ heartsBtn.MouseButton1Click:Connect(function()
 	heartsVisible = not heartsVisible
 	healthUI.Visible = heartsVisible
 	heartsBtn.Text = heartsVisible and "HEARTS : ON" or "HEARTS : OFF"
-	heartsBtn.BackgroundColor3 = heartsVisible
-		and Color3.fromRGB(255,80,80)
-		or Color3.fromRGB(120,120,120)
 end)
 
 --========================
