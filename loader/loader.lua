@@ -1,6 +1,6 @@
 --========================
--- SVJ SCRIPT HUB v5
--- ESP ORE + TP FLAG + GOD HEALTH + HEARTS TOGGLE
+-- SVJ SCRIPT HUB v6
+-- ESP ORE + TP FLAG + FAST HEALTH + HEARTS TOGGLE
 --========================
 
 -- SERVICES
@@ -51,11 +51,11 @@ workspace.DescendantAdded:Connect(function(v)
 end)
 
 --========================
--- GOD HEALTH
+-- FAST HEALTH
 --========================
 
 local GOD_HEALTH = false
-local GOD_VALUE = 1_000_000
+local MAX_HEALTH = 50
 
 humanoid.HealthChanged:Connect(function(hp)
 	if GOD_HEALTH and hp < humanoid.MaxHealth then
@@ -168,13 +168,13 @@ greenBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================
--- GOD HEALTH BUTTON
+-- FAST HEALTH BUTTON
 --========================
 
 local godBtn = Instance.new("TextButton", frame)
 godBtn.Size = UDim2.fromScale(0.8,0.085)
 godBtn.Position = UDim2.fromScale(0.1,0.54)
-godBtn.Text = "GOD HEALTH : OFF"
+godBtn.Text = "FAST HEALTH : OFF"
 godBtn.Font = Enum.Font.GothamBold
 godBtn.TextScaled = true
 godBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
@@ -184,14 +184,14 @@ Instance.new("UICorner", godBtn).CornerRadius = UDim.new(0,12)
 godBtn.MouseButton1Click:Connect(function()
 	GOD_HEALTH = not GOD_HEALTH
 	if GOD_HEALTH then
-		humanoid.MaxHealth = GOD_VALUE
-		humanoid.Health = GOD_VALUE
-		godBtn.Text = "GOD HEALTH : ON"
+		humanoid.MaxHealth = MAX_HEALTH
+		humanoid.Health = MAX_HEALTH
+		godBtn.Text = "FAST HEALTH : ON"
 		godBtn.BackgroundColor3 = Color3.fromRGB(80,255,80)
 	else
 		humanoid.MaxHealth = 100
 		humanoid.Health = 100
-		godBtn.Text = "GOD HEALTH : OFF"
+		godBtn.Text = "FAST HEALTH : OFF"
 		godBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
 	end
 end)
@@ -200,10 +200,9 @@ end)
 -- HEARTS UI TOGGLE
 --========================
 
-local playerGui = player:WaitForChild("PlayerGui")
 local healthUI
 pcall(function()
-	healthUI = playerGui:WaitForChild("Scene_MainTop"):WaitForChild("Health")
+	healthUI = player:WaitForChild("PlayerGui"):WaitForChild("Scene_MainTop"):WaitForChild("Health")
 end)
 
 local heartsVisible = true
