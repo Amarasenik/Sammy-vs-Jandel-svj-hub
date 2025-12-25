@@ -1,6 +1,6 @@
 --========================
 -- SVJ SCRIPT HUB v6.1
--- ESP ORE + TP FLAG + FAST HEALTH 500 + HEARTS TOGGLE
+-- ESP ORE + TP FLAG + AUTO FARM + FAST HEALTH 500 + HEARTS TOGGLE
 --========================
 
 -- SERVICES
@@ -69,8 +69,8 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "SVJHubGUI"
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.25, 0.55)
-frame.Position = UDim2.fromScale(0.05, 0.22)
+frame.Size = UDim2.fromScale(0.25, 0.65)
+frame.Position = UDim2.fromScale(0.05, 0.18)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -78,7 +78,7 @@ frame.Draggable = true
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0,16)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.fromScale(1,0.1)
+title.Size = UDim2.fromScale(1,0.08)
 title.BackgroundTransparency = 1
 title.Text = "SVJ SCRIPT HUB"
 title.Font = Enum.Font.GothamBold
@@ -90,8 +90,8 @@ title.TextColor3 = Color3.fromRGB(255,215,0)
 --========================
 
 local espBtn = Instance.new("TextButton", frame)
-espBtn.Size = UDim2.fromScale(0.8,0.085)
-espBtn.Position = UDim2.fromScale(0.1,0.12)
+espBtn.Size = UDim2.fromScale(0.8,0.075)
+espBtn.Position = UDim2.fromScale(0.1,0.1)
 espBtn.Text = "ESP ORE : ON"
 espBtn.Font = Enum.Font.GothamBold
 espBtn.TextScaled = true
@@ -108,12 +108,48 @@ espBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================
+-- AUTO FARM BUTTON
+--========================
+
+local AUTO_FARM = false
+local autoFarmLoaded = false
+
+local autoFarmBtn = Instance.new("TextButton", frame)
+autoFarmBtn.Size = UDim2.fromScale(0.8,0.075)
+autoFarmBtn.Position = UDim2.fromScale(0.1,0.19)
+autoFarmBtn.Text = "AUTO FARM : OFF"
+autoFarmBtn.Font = Enum.Font.GothamBold
+autoFarmBtn.TextScaled = true
+autoFarmBtn.BackgroundColor3 = Color3.fromRGB(120,120,255)
+autoFarmBtn.TextColor3 = Color3.new(0,0,0)
+Instance.new("UICorner", autoFarmBtn).CornerRadius = UDim.new(0,12)
+
+autoFarmBtn.MouseButton1Click:Connect(function()
+	AUTO_FARM = not AUTO_FARM
+
+	if AUTO_FARM then
+		autoFarmBtn.Text = "AUTO FARM : ON"
+		autoFarmBtn.BackgroundColor3 = Color3.fromRGB(80,255,120)
+
+		if not autoFarmLoaded then
+			autoFarmLoaded = true
+			task.spawn(function()
+				loadstring(game:HttpGet("https://pastebin.com/raw/HtXhtCku"))()
+			end)
+		end
+	else
+		autoFarmBtn.Text = "AUTO FARM : OFF"
+		autoFarmBtn.BackgroundColor3 = Color3.fromRGB(120,120,255)
+	end
+end)
+
+--========================
 -- TP FLAG LITE
 --========================
 
 local tpBtn = Instance.new("TextButton", frame)
-tpBtn.Size = UDim2.fromScale(0.8,0.085)
-tpBtn.Position = UDim2.fromScale(0.1,0.22)
+tpBtn.Size = UDim2.fromScale(0.8,0.075)
+tpBtn.Position = UDim2.fromScale(0.1,0.28)
 tpBtn.Text = "TP FLAG LITE"
 tpBtn.Font = Enum.Font.GothamBold
 tpBtn.TextScaled = true
@@ -122,8 +158,8 @@ tpBtn.TextColor3 = Color3.new(0,0,0)
 Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0,12)
 
 local flagFrame = Instance.new("Frame", frame)
-flagFrame.Size = UDim2.fromScale(0.8,0.2)
-flagFrame.Position = UDim2.fromScale(0.1,0.32)
+flagFrame.Size = UDim2.fromScale(0.8,0.18)
+flagFrame.Position = UDim2.fromScale(0.1,0.37)
 flagFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
 flagFrame.Visible = false
 Instance.new("UICorner", flagFrame).CornerRadius = UDim.new(0,12)
@@ -133,7 +169,7 @@ tpBtn.MouseButton1Click:Connect(function()
 end)
 
 local redBtn = Instance.new("TextButton", flagFrame)
-redBtn.Size = UDim2.fromScale(0.8,0.4)
+redBtn.Size = UDim2.fromScale(0.8,0.42)
 redBtn.Position = UDim2.fromScale(0.1,0.05)
 redBtn.Text = "TP TO RED"
 redBtn.Font = Enum.Font.GothamBold
@@ -147,8 +183,8 @@ redBtn.MouseButton1Click:Connect(function()
 end)
 
 local greenBtn = Instance.new("TextButton", flagFrame)
-greenBtn.Size = UDim2.fromScale(0.8,0.4)
-greenBtn.Position = UDim2.fromScale(0.1,0.55)
+greenBtn.Size = UDim2.fromScale(0.8,0.42)
+greenBtn.Position = UDim2.fromScale(0.1,0.53)
 greenBtn.Text = "TP TO GREEN"
 greenBtn.Font = Enum.Font.GothamBold
 greenBtn.TextScaled = true
@@ -165,8 +201,8 @@ end)
 --========================
 
 local godBtn = Instance.new("TextButton", frame)
-godBtn.Size = UDim2.fromScale(0.8,0.085)
-godBtn.Position = UDim2.fromScale(0.1,0.54)
+godBtn.Size = UDim2.fromScale(0.8,0.075)
+godBtn.Position = UDim2.fromScale(0.1,0.58)
 godBtn.Text = "FAST HEALTH : OFF"
 godBtn.Font = Enum.Font.GothamBold
 godBtn.TextScaled = true
@@ -201,8 +237,8 @@ end)
 local heartsVisible = true
 
 local heartsBtn = Instance.new("TextButton", frame)
-heartsBtn.Size = UDim2.fromScale(0.8,0.085)
-heartsBtn.Position = UDim2.fromScale(0.1,0.64)
+heartsBtn.Size = UDim2.fromScale(0.8,0.075)
+heartsBtn.Position = UDim2.fromScale(0.1,0.67)
 heartsBtn.Text = "HEARTS : ON"
 heartsBtn.Font = Enum.Font.GothamBold
 heartsBtn.TextScaled = true
@@ -222,8 +258,8 @@ end)
 --========================
 
 local hideBtn = Instance.new("TextButton", frame)
-hideBtn.Size = UDim2.fromScale(0.8,0.085)
-hideBtn.Position = UDim2.fromScale(0.1,0.75)
+hideBtn.Size = UDim2.fromScale(0.8,0.075)
+hideBtn.Position = UDim2.fromScale(0.1,0.76)
 hideBtn.Text = "HIDE GUI"
 hideBtn.Font = Enum.Font.GothamBold
 hideBtn.TextScaled = true
