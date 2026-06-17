@@ -1,286 +1,233 @@
---========================
--- SVJ SCRIPT HUB v6.1
--- ESP ORE + TP FLAG + AUTO FARM + FAST HEALTH 500 + HEARTS TOGGLE
---========================
+--======================================================
+-- WALL WARS UTILITY v3.1 (Fixed Injection Edition)
+--======================================================
 
--- SERVICES
-local Players = game:GetService("Players")
+local Players = game:Service("Players")
+local UserInputService = game:Service("UserInputService")
+local RunService = game:Service("RunService")
+
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
---========================
--- ORE ESP
---========================
+player.CharacterAdded:Connect(function(char)
+    character = char
+    hrp = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+end)
 
-local ESP_ENABLED = true
+-- СОСТОЯНИЕ ФУНКЦИЙ
+local ESP_ORE_ENABLED = true
+local TARGET_PLAYER = nil 
 local ESPs = {}
 
+--======================================================
+-- 1. ESP ORE (Подсветка руды)
+--======================================================
 local function addESP(model)
-	if not model:IsA("Model") then return end
-	if ESPs[model] then return end
-
-	local h = Instance.new("Highlight")
-	h.Name = "ORE_ESP"
-	h.Adornee = model
-	h.FillColor = Color3.fromRGB(255,255,0)
-	h.OutlineColor = Color3.fromRGB(255,255,255)
-	h.FillTransparency = 0.25
-	h.OutlineTransparency = 0
-	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	h.Enabled = ESP_ENABLED
-	h.Parent = model
-
-	ESPs[model] = h
+    if not model:IsA("Model") or ESPs[model] then return end
+    local h = Instance.new("Highlight")
+    h.Name = "ORE_ESP"
+    h.Adornee = model
+    h.FillColor = Color3.fromRGB(255, 215, 0)
+    h.OutlineColor = Color3.fromRGB(255, 255, 255)
+    h.FillTransparency = 0.3
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Enabled = ESP_ORE_ENABLED
+    h.Parent = model
+    ESPs[model] = h
 end
 
-for _,v in ipairs(workspace:GetDescendants()) do
-	if v:IsA("Model") and v.Name == "Ore" then
-		addESP(v)
-	end
+for _, v in ipairs(workspace:GetDescendants()) do
+    if v:IsA("Model") and v.Name == "Ore" then addESP(v) end
 end
 
 workspace.DescendantAdded:Connect(function(v)
-	if v:IsA("Model") and v.Name == "Ore" then
-		task.wait(0.05)
-		addESP(v)
-	end
+    if v:IsA("Model") and v.Name == "Ore" then 
+        task.wait(0.2) 
+        addESP(v) 
+    end
 end)
 
---========================
--- FAST HEALTH (500 HP)
---========================
-
-local GOD_HEALTH = false
-local MAX_HEALTH = 500
-
-humanoid.HealthChanged:Connect(function(hp)
-	if GOD_HEALTH and hp < humanoid.MaxHealth then
-		humanoid.Health = humanoid.MaxHealth
-	end
+--======================================================
+-- 2. НАДЕЖНАЯ ЛОГИКА АТАК С НЕБА (Killer Jump)
+--======================================================
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        
+        if TARGET_PLAYER and TARGET_PLAYER.Character and hrp and humanoid then
+            local tChar = TARGET_PLAYER.Character
+            local tHrp = tChar:FindFirstChild("HumanoidRootPart")
+            local tHum = tChar:FindFirstChild("Humanoid")
+            
+            if tHrp and tHum and tHum.Health > 0 then
+                -- Умный поиск меча/инструмента
+                local sword = player.Backpack:FindFirstChildOfClass("Tool") or character:FindFirstChildOfClass("Tool")
+                
+                if sword then
+                    -- Берем в руки, если он в рюкзаке
+                    if sword.Parent == player.Backpack then
+                        humanoid:EquipTool(sword)
+                        task.wait(0.05)
+                    end
+                    
+                    -- Считываем позицию с упреждением скорости
+                    local targetVelocity = tHrp.AssemblyLinearVelocity
+                    local predictedPosition = tHrp.CFrame + (targetVelocity * 0.05)
+                    
+                    -- Пикируем прямо на него
+                    hrp.CFrame = predictedPosition * CFrame.new(0, 2.5, 0)
+                    
+                    -- Удар
+                    sword:Activate()
+                    task.wait(0.05)
+                    
+                    -- Отлетаем вверх над его новой позицией
+                    local freshHrp = tChar:FindFirstChild("HumanoidRootPart")
+                    if freshHrp then
+                        hrp.CFrame = freshHrp.CFrame * CFrame.new(0, 24, 0)
+                    end
+                    
+                    task.wait(0.2)
+                else
+                    -- Если меча нет, просто зависаем над ним
+                    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 20, 0)
+                end
+            else
+                TARGET_PLAYER = nil
+            end
+        end
+    end
 end)
 
---========================
--- GUI
---========================
-
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "SVJHubGUI"
+--======================================================
+-- 3. ИНТЕРФЕЙС (GUI)
+--======================================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "WallWarsHub_v3_Fixed"
+gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromScale(0.25, 0.65)
-frame.Position = UDim2.fromScale(0.05, 0.18)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BorderSizePixel = 0
+frame.Size = UDim2.fromScale(0.35, 0.65)
+frame.Position = UDim2.fromScale(0.05, 0.2)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.Active = true
 frame.Draggable = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,16)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.fromScale(1,0.08)
+title.Size = UDim2.fromScale(1, 0.12)
 title.BackgroundTransparency = 1
-title.Text = "SVJ SCRIPT HUB"
+title.Text = "SVJ HUB v3.1"
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(255,215,0)
+title.TextColor3 = Color3.fromRGB(255, 215, 0)
 
---========================
--- ESP BUTTON
---========================
+-- Список игроков (Скролл)
+local scroll = Instance.new("ScrollingFrame", frame)
+scroll.Size = UDim2.fromScale(0.55, 0.8)
+scroll.Position = UDim2.fromScale(0.05, 0.15)
+scroll.BackgroundTransparency = 0.9
+scroll.BackgroundColor3 = Color3.new(1, 1, 1)
+scroll.CanvasSize = UDim2.fromScale(0, 0)
+scroll.ScrollBarThickness = 4
 
-local espBtn = Instance.new("TextButton", frame)
-espBtn.Size = UDim2.fromScale(0.8,0.075)
-espBtn.Position = UDim2.fromScale(0.1,0.1)
-espBtn.Text = "ESP ORE : ON"
-espBtn.Font = Enum.Font.GothamBold
-espBtn.TextScaled = true
-espBtn.BackgroundColor3 = Color3.fromRGB(255,215,0)
-espBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", espBtn).CornerRadius = UDim.new(0,12)
+local listLayout = Instance.new("UIListLayout", scroll)
+listLayout.Padding = UDim.new(0, 5)
 
-espBtn.MouseButton1Click:Connect(function()
-	ESP_ENABLED = not ESP_ENABLED
-	for _,h in pairs(ESPs) do
-		h.Enabled = ESP_ENABLED
-	end
-	espBtn.Text = ESP_ENABLED and "ESP ORE : ON" or "ESP ORE : OFF"
+-- Функция обновления списка игроков (Обернута в pcall для безопасности)
+local function updatePlayerList()
+    for _, child in ipairs(scroll:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    
+    local count = 0
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player then
+            count = count + 1
+            
+            local teamName = "No Team"
+            local teamColor = Color3.fromRGB(200, 200, 200)
+            
+            pcall(function()
+                if p.Team then
+                    teamName = p.Team.Name
+                    teamColor = p.Team.TeamColor.Color
+                end
+            end)
+            
+            local pBtn = Instance.new("TextButton", scroll)
+            pBtn.Size = UDim2.new(0.95, 0, 0, 30)
+            pBtn.Text = p.Name .. " [" .. teamName .. "]"
+            pBtn.Font = Enum.Font.Gotham
+            pBtn.TextSize = 12
+            pBtn.TextColor3 = teamColor
+            pBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4)
+            
+            pBtn.MouseButton1Click:Connect(function()
+                TARGET_PLAYER = p
+            end)
+        end
+    end
+    scroll.CanvasSize = UDim2.new(0, 0, 0, count * 35)
+end
+
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+task.spawn(updatePlayerList)
+
+-- Правая панель кнопок
+local rightFrame = Instance.new("Frame", frame)
+rightFrame.Size = UDim2.fromScale(0.35, 0.8)
+rightFrame.Position = UDim2.fromScale(0.62, 0.15)
+rightFrame.BackgroundTransparency = 1
+
+local rightLayout = Instance.new("UIListLayout", rightFrame)
+rightLayout.Padding = UDim.new(0, 8)
+
+local function createRightBtn(text, color, callback)
+    local btn = Instance.new("TextButton", rightFrame)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Text = text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.new(0, 0, 0)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+createRightBtn("STOP JUMP", Color3.fromRGB(255, 50, 50), function()
+    TARGET_PLAYER = nil
 end)
 
---========================
--- AUTO FARM BUTTON
---========================
-
-local AUTO_FARM = false
-local autoFarmLoaded = false
-
-local autoFarmBtn = Instance.new("TextButton", frame)
-autoFarmBtn.Size = UDim2.fromScale(0.8,0.075)
-autoFarmBtn.Position = UDim2.fromScale(0.1,0.19)
-autoFarmBtn.Text = "AUTO FARM : OFF"
-autoFarmBtn.Font = Enum.Font.GothamBold
-autoFarmBtn.TextScaled = true
-autoFarmBtn.BackgroundColor3 = Color3.fromRGB(120,120,255)
-autoFarmBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", autoFarmBtn).CornerRadius = UDim.new(0,12)
-
-autoFarmBtn.MouseButton1Click:Connect(function()
-	AUTO_FARM = not AUTO_FARM
-
-	if AUTO_FARM then
-		autoFarmBtn.Text = "AUTO FARM : ON"
-		autoFarmBtn.BackgroundColor3 = Color3.fromRGB(80,255,120)
-
-		if not autoFarmLoaded then
-			autoFarmLoaded = true
-			task.spawn(function()
-				loadstring(game:HttpGet("https://pastebin.com/raw/HtXhtCku"))()
-			end)
-		end
-	else
-		autoFarmBtn.Text = "AUTO FARM : OFF"
-		autoFarmBtn.BackgroundColor3 = Color3.fromRGB(120,120,255)
-	end
+createRightBtn("ESP ORE", Color3.fromRGB(255, 215, 0), function()
+    ESP_ORE_ENABLED = not ESP_ORE_ENABLED
+    for _, h in pairs(ESPs) do if h then h.Enabled = ESP_ORE_ENABLED end end
 end)
 
---========================
--- TP FLAG LITE
---========================
-
-local tpBtn = Instance.new("TextButton", frame)
-tpBtn.Size = UDim2.fromScale(0.8,0.075)
-tpBtn.Position = UDim2.fromScale(0.1,0.28)
-tpBtn.Text = "TP FLAG LITE"
-tpBtn.Font = Enum.Font.GothamBold
-tpBtn.TextScaled = true
-tpBtn.BackgroundColor3 = Color3.fromRGB(0,255,150)
-tpBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", tpBtn).CornerRadius = UDim.new(0,12)
-
-local flagFrame = Instance.new("Frame", frame)
-flagFrame.Size = UDim2.fromScale(0.8,0.18)
-flagFrame.Position = UDim2.fromScale(0.1,0.37)
-flagFrame.BackgroundColor3 = Color3.fromRGB(35,35,35)
-flagFrame.Visible = false
-Instance.new("UICorner", flagFrame).CornerRadius = UDim.new(0,12)
-
-tpBtn.MouseButton1Click:Connect(function()
-	flagFrame.Visible = not flagFrame.Visible
+createRightBtn("TP RED", Color3.fromRGB(255, 100, 100), function()
+    if hrp then hrp.CFrame = CFrame.new(574, 640.5, -5664) + Vector3.new(0, 3, 0) end
 end)
 
-local redBtn = Instance.new("TextButton", flagFrame)
-redBtn.Size = UDim2.fromScale(0.8,0.42)
-redBtn.Position = UDim2.fromScale(0.1,0.05)
-redBtn.Text = "TP TO RED"
-redBtn.Font = Enum.Font.GothamBold
-redBtn.TextScaled = true
-redBtn.BackgroundColor3 = Color3.fromRGB(255,0,0)
-redBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", redBtn).CornerRadius = UDim.new(0,12)
-
-redBtn.MouseButton1Click:Connect(function()
-	hrp.CFrame = CFrame.new(574, 640.503, -5664) * CFrame.new(0,3,0)
+createRightBtn("TP GREEN", Color3.fromRGB(100, 255, 100), function()
+    if hrp then hrp.CFrame = CFrame.new(1557, 640.6, -5664) + Vector3.new(0, 3, 0) end
 end)
 
-local greenBtn = Instance.new("TextButton", flagFrame)
-greenBtn.Size = UDim2.fromScale(0.8,0.42)
-greenBtn.Position = UDim2.fromScale(0.1,0.53)
-greenBtn.Text = "TP TO GREEN"
-greenBtn.Font = Enum.Font.GothamBold
-greenBtn.TextScaled = true
-greenBtn.BackgroundColor3 = Color3.fromRGB(0,255,0)
-greenBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", greenBtn).CornerRadius = UDim.new(0,12)
-
-greenBtn.MouseButton1Click:Connect(function()
-	hrp.CFrame = CFrame.new(1557, 640.623, -5664) * CFrame.new(0,3,0)
-end)
-
---========================
--- FAST HEALTH BUTTON
---========================
-
-local godBtn = Instance.new("TextButton", frame)
-godBtn.Size = UDim2.fromScale(0.8,0.075)
-godBtn.Position = UDim2.fromScale(0.1,0.58)
-godBtn.Text = "FAST HEALTH : OFF"
-godBtn.Font = Enum.Font.GothamBold
-godBtn.TextScaled = true
-godBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-godBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", godBtn).CornerRadius = UDim.new(0,12)
-
-godBtn.MouseButton1Click:Connect(function()
-	GOD_HEALTH = not GOD_HEALTH
-	if GOD_HEALTH then
-		humanoid.MaxHealth = MAX_HEALTH
-		humanoid.Health = MAX_HEALTH
-		godBtn.Text = "FAST HEALTH : ON (500)"
-		godBtn.BackgroundColor3 = Color3.fromRGB(80,255,80)
-	else
-		humanoid.MaxHealth = 100
-		humanoid.Health = 100
-		godBtn.Text = "FAST HEALTH : OFF"
-		godBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-	end
-end)
-
---========================
--- HEARTS UI TOGGLE
---========================
-
-local healthUI
-pcall(function()
-	healthUI = player.PlayerGui.Scene_MainTop.Health
-end)
-
-local heartsVisible = true
-
-local heartsBtn = Instance.new("TextButton", frame)
-heartsBtn.Size = UDim2.fromScale(0.8,0.075)
-heartsBtn.Position = UDim2.fromScale(0.1,0.67)
-heartsBtn.Text = "HEARTS : ON"
-heartsBtn.Font = Enum.Font.GothamBold
-heartsBtn.TextScaled = true
-heartsBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
-heartsBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", heartsBtn).CornerRadius = UDim.new(0,12)
-
-heartsBtn.MouseButton1Click:Connect(function()
-	if not healthUI then return end
-	heartsVisible = not heartsVisible
-	healthUI.Visible = heartsVisible
-	heartsBtn.Text = heartsVisible and "HEARTS : ON" or "HEARTS : OFF"
-end)
-
---========================
--- HIDE / SHOW GUI
---========================
-
-local hideBtn = Instance.new("TextButton", frame)
-hideBtn.Size = UDim2.fromScale(0.8,0.075)
-hideBtn.Position = UDim2.fromScale(0.1,0.76)
-hideBtn.Text = "HIDE GUI"
-hideBtn.Font = Enum.Font.GothamBold
-hideBtn.TextScaled = true
-hideBtn.BackgroundColor3 = Color3.fromRGB(200,200,200)
-hideBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", hideBtn).CornerRadius = UDim.new(0,12)
-
-hideBtn.MouseButton1Click:Connect(function()
-	frame.Visible = false
-end)
-
+-- Кнопка SHOW / HIDE
 local showBtn = Instance.new("TextButton", gui)
-showBtn.Size = UDim2.fromScale(0.08,0.05)
-showBtn.Position = UDim2.fromScale(0.01,0.01)
-showBtn.Text = "SHOW"
+showBtn.Size = UDim2.fromScale(0.12, 0.05)
+showBtn.Position = UDim2.fromScale(0.02, 0.02)
+showBtn.Text = "SHOW / HIDE"
 showBtn.Font = Enum.Font.GothamBold
 showBtn.TextScaled = true
-showBtn.BackgroundColor3 = Color3.fromRGB(255,215,0)
-showBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", showBtn).CornerRadius = UDim.new(0,10)
+showBtn.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+showBtn.TextColor3 = Color3.new(0, 0, 0)
+Instance.new("UICorner", showBtn).CornerRadius = UDim.new(0, 8)
 
-showBtn.MouseButton1Click:Connect(function()
-	frame.Visible = true
+showBtn.MouseButton1Click:Connect(function() 
+    frame.Visible = not frame.Visible 
 end)
