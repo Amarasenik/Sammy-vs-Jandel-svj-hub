@@ -1,9 +1,11 @@
 --======================================================
--- WALL WARS UTILITY v3.2 (Safe GUI & Auto-Attack)
+-- WALL WARS UTILITY v3.3 (Xeno Protected & Binds Engine)
 --======================================================
 
-local Players = game:Service("Players")
-local RunService = game:Service("RunService")
+-- Обходим баг :Service() напрямую через глобальные переменные
+local Players = game.Players or game:findService("Players")
+local Workspace = game.Workspace or game:findService("Workspace")
+local UserInputService = game.UserInputService or game:findService("UserInputService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -20,6 +22,42 @@ end)
 local ESP_ORE_ENABLED = true
 local TARGET_PLAYER = nil 
 local ESPs = {}
+
+-- Создаем крутилку (наземный флинг)
+local flingObject = Instance.new("BodyAngularVelocity")
+flingObject.Name = "SVJ_Fling"
+flingObject.MaxTorque = Vector3.new(0, math.huge, 0) -- Строго вокруг своей оси, чтобы не падать
+flingObject.AngularVelocity = Vector3.new(0, 99999, 0)
+
+--======================================================
+-- ХОТКЕИ (БИНДЫ) ДЛЯ СКРИПТА
+--======================================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- [Кнопка B] - РЕЖИМ РАКЕТЫ (Скорость 300 + Флинг)
+    if input.KeyCode == Enum.KeyCode.B then
+        if humanoid and hrp then
+            humanoid.WalkSpeed = 300
+            Workspace.Gravity = 196.2 -- Держимся на земле, чтобы не взлетать
+            flingObject.Parent = hrp
+            print("SVJ: РАКЕТА СТАРТ (Speed 300)")
+        end
+    end
+    
+    -- [Кнопка C] - СБРОС (Стать обычным игроком)
+    if input.KeyCode == Enum.KeyCode.C then
+        if humanoid and hrp then
+            humanoid.WalkSpeed = 16
+            if hrp:FindFirstChild("SVJ_Fling") then
+                hrp.SVJ_Fling.Parent = nil
+            end
+            hrp.Velocity = Vector3.new(0,0,0)
+            hrp.RotVelocity = Vector3.new(0,0,0)
+            print("SVJ: ТОРМОЖЕНИЕ")
+        end
+    end
+end)
 
 --======================================================
 -- 1. ESP ORE
@@ -38,11 +76,11 @@ local function addESP(model)
     ESPs[model] = h
 end
 
-for _, v in ipairs(workspace:GetDescendants()) do
+for _, v in ipairs(Workspace:GetDescendants()) do
     if v:IsA("Model") and v.Name == "Ore" then addESP(v) end
 end
 
-workspace.DescendantAdded:Connect(function(v)
+Workspace.DescendantAdded:Connect(function(v)
     if v:IsA("Model") and v.Name == "Ore" then 
         task.wait(0.2) 
         addESP(v) 
@@ -101,7 +139,6 @@ end)
 -- 3. СОЗДАНИЕ ИНТЕРФЕЙСА (С полной защитой от вылетов)
 --======================================================
 pcall(function()
-    -- Удаляем старый UI, если он существовал
     local oldGui = player:WaitForChild("PlayerGui"):FindFirstChild("WallWarsHub_Safe")
     if oldGui then oldGui:Destroy() end
 
@@ -118,12 +155,11 @@ pcall(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.fromScale(1, 0.12)
     title.BackgroundTransparency = 1
-    title.Text = "SVJ HUB v3.2"
+    title.Text = "SVJ HUB v3.3"
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
     title.TextColor3 = Color3.fromRGB(255, 215, 0)
 
-    -- Скролл-список
     local scroll = Instance.new("ScrollingFrame", frame)
     scroll.Size = UDim2.fromScale(0.55, 0.8)
     scroll.Position = UDim2.fromScale(0.05, 0.15)
@@ -135,7 +171,6 @@ pcall(function()
     local listLayout = Instance.new("UIListLayout", scroll)
     listLayout.Padding = UDim.new(0, 5)
 
-    -- Обновление списка игроков
     local function updatePlayerList()
         for _, child in ipairs(scroll:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
@@ -175,7 +210,6 @@ pcall(function()
     Players.PlayerRemoving:Connect(updatePlayerList)
     updatePlayerList()
 
-    -- Правая панель кнопок
     local rightFrame = Instance.new("Frame", frame)
     rightFrame.Size = UDim2.fromScale(0.35, 0.8)
     rightFrame.Position = UDim2.fromScale(0.62, 0.15)
@@ -213,7 +247,6 @@ pcall(function()
         if hrp then hrp.CFrame = CFrame.new(1557, 640.6, -5664) + Vector3.new(0, 3, 0) end
     end)
 
-    -- Кнопка Свернуть/Развернуть
     local showBtn = Instance.new("TextButton", gui)
     showBtn.Size = UDim2.fromScale(0.12, 0.05)
     showBtn.Position = UDim2.fromScale(0.02, 0.02)
@@ -228,3 +261,5 @@ pcall(function()
         frame.Visible = not frame.Visible 
     end)
 end)
+
+print("SVJ HUB v3.3 успешно запущен! Бинды на B и C активны.")
