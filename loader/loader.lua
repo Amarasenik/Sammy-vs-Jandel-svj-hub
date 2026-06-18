@@ -25,7 +25,7 @@ local ESPs = {}
 local flingObject = Instance.new("BodyAngularVelocity")
 flingObject.Name = "SVJ_Fling"
 flingObject.MaxTorque = Vector3.new(0, math.huge, 0)
-flingObject.AngularVelocity = Vector3.new(0, 99999, 0)
+flingObject.AngularVelocity = Vector3.new(0, 999, 0)
 
 -- БИНДЫ (B и C)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
