@@ -1,30 +1,36 @@
 --======================================================
 -- WALL WARS UTILITY v3.6 (Final Release - Anti-Bug Engine)
 --======================================================
-print ("начало инжекта")
--- Безопасный обход бага инжектора с DataModel "Ugc"
+print("начало инжекта")
+
 local Players = game.Players or game:findService("Players")
 local Workspace = game.Workspace or game:findService("Workspace")
 local UserInputService = game.UserInputService or game:findService("UserInputService")
-local MarketplaceService = game:GetService("MarketplaceService") -- для хука доната
+local MarketplaceService = game:GetService("MarketplaceService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
-local humanoid = character:WaitForChild("Humanoid")
+local character = player.Character
+local hrp = character and character:FindFirstChild("HumanoidRootPart")
+local humanoid = character and character:FindFirstChild("Humanoid")
 
+-- Асинхронное обновление ссылок, чтобы скрипт никогда не зависал при загрузке
 player.CharacterAdded:Connect(function(char)
     character = char
     hrp = char:WaitForChild("HumanoidRootPart")
     humanoid = char:WaitForChild("Humanoid")
+    print("SVJ: Персонаж обновился и готов!")
 end)
+
+if character and not hrp then
+    hrp = character:FindFirstChild("HumanoidRootPart")
+    humanoid = character:FindFirstChild("Humanoid")
+end
 
 -- ГЛОБАЛЬНЫЕ НАСТРОЙКИ
 local ESP_ORE_ENABLED = true
 local TARGET_PLAYER = nil 
 local ORE_ESPs = {}
 
--- Создаем крутилку (Флинг) на клавишу B
 local flingObject = Instance.new("BodyAngularVelocity")
 flingObject.Name = "SVJ_Fling"
 flingObject.MaxTorque = Vector3.new(0, math.huge, 0)
@@ -33,11 +39,10 @@ flingObject.AngularVelocity = Vector3.new(0, 99999, 0)
 --======================================================
 -- 1. БИНДЫ (УПРАВЛЕНИЕ СКОРОСТЬЮ)
 --======================================================
-print ("бинды")
+print("бинды")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    -- [B] - Безопасный разгон (150) + Флинг
     if input.KeyCode == Enum.KeyCode.B then
         if humanoid and hrp then
             humanoid.WalkSpeed = 150
@@ -47,7 +52,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
     
-    -- [C] - Полный тормоз / Сброс
     if input.KeyCode == Enum.KeyCode.C then
         if humanoid and hrp then
             humanoid.WalkSpeed = 16
@@ -62,9 +66,8 @@ end)
 --======================================================
 -- 2. СЕТЕВАЯ ДЖАМП-АТАКА (ТОЛЬКО SWORD + REMOTE)
 --======================================================
-print ("атака")
+print("атака")
 local function getActualSword()
-    -- Ищем строго предмет с оригинальным именем "Sword"
     for _, tool in ipairs(player.Backpack:GetChildren()) do
         if tool:IsA("Tool") and tool.Name == "Sword" then return tool end
     end
@@ -76,7 +79,7 @@ end
 
 task.spawn(function()
     while true do
-        task.wait(0.05) -- Ускоренная частота проверки
+        task.wait(0.05)
         
         if TARGET_PLAYER and TARGET_PLAYER.Character and hrp and humanoid then
             local tChar = TARGET_PLAYER.Character
@@ -87,37 +90,31 @@ task.spawn(function()
                 local sword = getActualSword()
                 
                 if sword then
-                    -- Берем меч в руки, если он в рюкзаке
                     if sword.Parent == player.Backpack then
                         humanoid:EquipTool(sword)
                         task.wait(0.02)
                     end
                     
-                    -- Упреждение движения цели
                     local targetVelocity = tHrp.AssemblyLinearVelocity
                     local predictedPosition = tHrp.CFrame + (targetVelocity * 0.05)
                     
-                    -- Пикирование сверху
                     hrp.CFrame = predictedPosition * CFrame.new(0, 2.5, 0)
                     
-                    -- МГНОВЕННЫЙ СЕТЕВОЙ УДАР (Молния из Dex)
                     local remote = sword:FindFirstChild("ActivateTool")
                     if remote then
                         remote:FireServer()
                     else
-                        sword:Activate() -- Запасной вариант
+                        sword:Activate()
                     end
                     
                     task.wait(0.02)
                     
-                    -- Моментальный взлет вверх (Безопасная зона)
                     local freshHrp = tChar:FindFirstChild("HumanoidRootPart")
                     if freshHrp then
                         hrp.CFrame = freshHrp.CFrame * CFrame.new(0, 24, 0)
                     end
                     task.wait(0.15)
                 else
-                    -- Если меча нет, просто зависаем над врагом
                     hrp.CFrame = tHrp.CFrame * CFrame.new(0, 20, 0)
                 end
             else
@@ -130,14 +127,14 @@ end)
 --======================================================
 -- 3. ИСПРАВЛЕННЫЙ ТАРГЕТНЫЙ ESP НА ПАПКУ ORES
 --======================================================
-print ("есп")
+print("есп")
 local function applyOreESP(part)
-    if not part:IsA("BasePart") or ORE_ESPs[part] then return end
+    if ORE_ESPs[part] then return end
     
     local highlight = Instance.new("Highlight")
     highlight.Name = "SVJ_Ore_Highlight"
     highlight.Adornee = part
-    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Золотой цвет
+    highlight.FillColor = Color3.fromRGB(255, 215, 0)
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.FillTransparency = 0.3
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
@@ -148,21 +145,38 @@ local function applyOreESP(part)
 end
 
 task.spawn(function()
-    -- Ждем загрузки папки ores, которая лежит рядом с block
-    local oresFolder = Workspace:WaitForChild("ores", 5) or Workspace:FindFirstChild("ores", true)
+    -- Точный путь по твоему скриншоту из Студии!
+    local oresFolder = Workspace:WaitForChild("CurrentGame", 5) 
+        and Workspace.CurrentGame:WaitForChild("SpawnPool", 5) 
+        and Workspace.CurrentGame.SpawnPool:WaitForChild("Ores", 5)
+        or Workspace:FindFirstChild("Ores", true) -- Запасной глобальный поиск
+    
     if oresFolder then
-        for _, part in ipairs(oresFolder:GetChildren()) do applyOreESP(part) end
-        oresFolder.ChildAdded:Connect(applyOreESP)
+        for _, child in ipairs(oresFolder:GetChildren()) do
+            -- Подсвечиваем саму модельку руды или её внутренности
+            if child:IsA("BasePart") then applyOreESP(child) end
+            for _, subChild in ipairs(child:GetDescendants()) do
+                if subChild:IsA("BasePart") then applyOreESP(subChild) end
+            end
+        end
+        
+        oresFolder.ChildAdded:Connect(function(child)
+            task.wait(0.1)
+            if child:IsA("BasePart") then applyOreESP(child) end
+            for _, subChild in ipairs(child:GetDescendants()) do
+                if subChild:IsA("BasePart") then applyOreESP(subChild) end
+            end
+        end)
         print("SVJ: Оптимизированный ESP на папку Ores успешно запущен!")
     else
-        print("SVJ: Предупреждение! Папка 'ores' не найдена в корне.")
+        print("SVJ: Предупреждение! Папка 'Ores' не найдена.")
     end
 end)
 
 --======================================================
 -- 4. МЕТОД ПРИЗРАКА (СНОС ВОРОТ И NOBUILDZONE)
 --======================================================
-print ("снос")
+print("снос")
 local function makeGhost(part, transparency)
     if part and part:IsA("BasePart") then
         part.CanCollide = false
@@ -171,7 +185,7 @@ local function makeGhost(part, transparency)
     end
 end
 
--- А) Уничтожение зон NoBuild по твоему пути из Студии
+-- А) Уничтожение зон NoBuild по твоему пути
 task.spawn(function()
     local nbFolder = Workspace:WaitForChild("CurrentGame", 5)
         and Workspace.CurrentGame:WaitForChild("LocalPositions", 5)
@@ -193,37 +207,50 @@ task.spawn(function()
     local function checkAndDestroyGate(obj)
         if obj:IsA("BasePart") then
             if obj.Name == "Gate" then
-                makeGhost(obj, 0.5) -- Полупрозрачные, чтобы видеть проход
+                makeGhost(obj, 0.5)
             elseif obj.Name == "InvisibleGate" then
-                makeGhost(obj, 1) -- Полностью невидимые
+                makeGhost(obj, 1)
             end
         end
     end
-    
     for _, obj in ipairs(Workspace:GetChildren()) do checkAndDestroyGate(obj) end
     Workspace.ChildAdded:Connect(checkAndDestroyGate)
     print("SVJ: Все ворота Gate и InvisibleGate переведены в режим призрака!")
 end)
 
 --======================================================
--- 5. АНТИ-ДОНАТ ЩИТ (BLOCK GAMEPASS PROMPTS)
+-- 5. АНТИ-ДОНАТ ЩИТ (БЕЗОПАСНЫЙ КРАШ-ЗАЩИЩЕННЫЙ ХУК)
 --======================================================
-print ("антидонат")
-local hook
-hook = hookmetamethod(game, "__index", function(self, key)
-    if self == MarketplaceService and (key == "PromptGamePassPurchase" or key == "PromptPurchase" or key == "PromptProductPurchase") then
-        return function() 
-            print("SVJ: Заблокирована наглая попытка впарить геймпас!")
-            return nil 
-        end
+print("антидонат")
+pcall(function()
+    local hookfn = hookmetamethod or (getrawmetatable and function(obj, mt, f) 
+        local old = getrawmetatable(obj)[mt]
+        setreadonly(getrawmetatable(obj), false)
+        getrawmetatable(obj)[mt] = f
+        return old
+    end)
+
+    if hookfn then
+        local hook
+        hook = hookfn(game, "__index", function(self, key)
+            if self == MarketplaceService and (key == "PromptGamePassPurchase" or key == "PromptPurchase" or key == "PromptProductPurchase") then
+                return function() 
+                    print("SVJ: Заблокирована наглая попытка впарить геймпас!")
+                    return nil 
+                end
+            end
+            return hook(self, key)
+        end)
+        print("SVJ: Анти-донат щит успешно активирован.")
+    else
+        print("SVJ: Хуки не поддерживаются инжектором, пропускаем донат-щит.")
     end
-    return hook(self, key)
 end)
 
 --======================================================
 -- 6. ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI)
 --======================================================
-print ("графон")
+print("графон")
 pcall(function()
     local oldGui = player:WaitForChild("PlayerGui"):FindFirstChild("WallWarsHub_Safe")
     if oldGui then oldGui:Destroy() end
@@ -324,4 +351,4 @@ pcall(function()
 end)
 
 print("SVJ HUB v3.6 УСПЕШНО ЗАПУЩЕН! Ворота испарились, NoBuild снят, донат заблокирован.")
-print ("конец инжекта")
+print("конец инжекта")
