@@ -1,5 +1,5 @@
 --======================================================
--- WALL WARS UTILITY v3.6 (Final Release - Anti-Bug Engine)
+-- WALL WARS UTILITY v3.7 (Fix Release - Box ESP & Event Engine)
 --======================================================
 print("начало инжекта")
 
@@ -13,7 +13,6 @@ local character = player.Character
 local hrp = character and character:FindFirstChild("HumanoidRootPart")
 local humanoid = character and character:FindFirstChild("Humanoid")
 
--- Асинхронное обновление ссылок, чтобы скрипт никогда не зависал при загрузке
 player.CharacterAdded:Connect(function(char)
     character = char
     hrp = char:WaitForChild("HumanoidRootPart")
@@ -26,7 +25,6 @@ if character and not hrp then
     humanoid = character:FindFirstChild("Humanoid")
 end
 
--- ГЛОБАЛЬНЫЕ НАСТРОЙКИ
 local ESP_ORE_ENABLED = true
 local TARGET_PLAYER = nil 
 local ORE_ESPs = {}
@@ -42,7 +40,6 @@ flingObject.AngularVelocity = Vector3.new(0, 99999, 0)
 print("бинды")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    
     if input.KeyCode == Enum.KeyCode.B then
         if humanoid and hrp then
             humanoid.WalkSpeed = 150
@@ -51,7 +48,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             print("SVJ: СКОРОСТЬ 150 + ФЛИНГ АКТИВИРОВАН")
         end
     end
-    
     if input.KeyCode == Enum.KeyCode.C then
         if humanoid and hrp then
             humanoid.WalkSpeed = 16
@@ -64,7 +60,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 --======================================================
--- 2. СЕТЕВАЯ ДЖАМП-АТАКА (ТОЛЬКО SWORD + REMOTE)
+-- 2. СЕТЕВАЯ ДЖАМП-АТАКА (ФИКС BINDABLE EVENT)
 --======================================================
 print("атака")
 local function getActualSword()
@@ -80,7 +76,6 @@ end
 task.spawn(function()
     while true do
         task.wait(0.05)
-        
         if TARGET_PLAYER and TARGET_PLAYER.Character and hrp and humanoid then
             local tChar = TARGET_PLAYER.Character
             local tHrp = tChar:FindFirstChild("HumanoidRootPart")
@@ -88,7 +83,6 @@ task.spawn(function()
             
             if tHrp and tHum and tHum.Health > 0 then
                 local sword = getActualSword()
-                
                 if sword then
                     if sword.Parent == player.Backpack then
                         humanoid:EquipTool(sword)
@@ -97,18 +91,21 @@ task.spawn(function()
                     
                     local targetVelocity = tHrp.AssemblyLinearVelocity
                     local predictedPosition = tHrp.CFrame + (targetVelocity * 0.05)
-                    
                     hrp.CFrame = predictedPosition * CFrame.new(0, 2.5, 0)
                     
                     local remote = sword:FindFirstChild("ActivateTool")
                     if remote then
-                        remote:FireServer()
+                        if remote:IsA("BindableEvent") then
+                            remote:Fire() -- Фикс: вызываем как обычный ивент!
+                        local_remote_fired = true
+                        else
+                            remote:FireServer()
+                        end
                     else
                         sword:Activate()
                     end
                     
                     task.wait(0.02)
-                    
                     local freshHrp = tChar:FindFirstChild("HumanoidRootPart")
                     if freshHrp then
                         hrp.CFrame = freshHrp.CFrame * CFrame.new(0, 24, 0)
@@ -125,49 +122,52 @@ task.spawn(function()
 end)
 
 --======================================================
--- 3. ИСПРАВЛЕННЫЙ ТАРГЕТНЫЙ ESP НА ПАПКУ ORES
+-- 3. НЕУБИВАЕМЫЙ BOX-ESP НА ПАПКУ ORES (РАБОТАЕТ ВЕЗДЕ)
 --======================================================
 print("есп")
 local function applyOreESP(part)
-    if ORE_ESPs[part] then return end
+    if not part:IsA("BasePart") or ORE_ESPs[part] then return end
     
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "SVJ_Ore_Highlight"
-    highlight.Adornee = part
-    highlight.FillColor = Color3.fromRGB(255, 215, 0)
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.3
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Enabled = ESP_ORE_ENABLED
-    highlight.Parent = part
+    -- Создаем коробку-подсветку сквозь стены
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "SVJ_Ore_Box"
+    box.Size = part.Size + Vector3.new(0.1, 0.1, 0.1)
+    box.Color3 = Color3.fromRGB(255, 215, 0) -- Золотой
+    box.Transparency = 0.4
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Adornee = part
+    box.Visible = ESP_ORE_ENABLED
+    box.Parent = player:WaitForChild("PlayerGui") -- Надежное место для рендера adornment
     
-    ORE_ESPs[part] = highlight
+    ORE_ESPs[part] = box
 end
 
 task.spawn(function()
-    -- Точный путь по твоему скриншоту из Студии!
     local oresFolder = Workspace:WaitForChild("CurrentGame", 5) 
         and Workspace.CurrentGame:WaitForChild("SpawnPool", 5) 
         and Workspace.CurrentGame.SpawnPool:WaitForChild("Ores", 5)
-        or Workspace:FindFirstChild("Ores", true) -- Запасной глобальный поиск
+        or Workspace:FindFirstChild("Ores", true)
     
     if oresFolder then
+        -- Проверяем все парты внутри папки руды
         for _, child in ipairs(oresFolder:GetChildren()) do
-            -- Подсвечиваем саму модельку руды или её внутренности
-            if child:IsA("BasePart") then applyOreESP(child) end
+            if child:IsA("BasePart") then 
+                applyOreESP(child) 
+            end
             for _, subChild in ipairs(child:GetDescendants()) do
                 if subChild:IsA("BasePart") then applyOreESP(subChild) end
             end
         end
         
         oresFolder.ChildAdded:Connect(function(child)
-            task.wait(0.1)
+            task.wait(0.2)
             if child:IsA("BasePart") then applyOreESP(child) end
             for _, subChild in ipairs(child:GetDescendants()) do
                 if subChild:IsA("BasePart") then applyOreESP(subChild) end
             end
         end)
-        print("SVJ: Оптимизированный ESP на папку Ores успешно запущен!")
+        print("SVJ: Железный BOX-ESP на папку Ores успешно запущен!")
     else
         print("SVJ: Предупреждение! Папка 'Ores' не найдена.")
     end
@@ -185,7 +185,6 @@ local function makeGhost(part, transparency)
     end
 end
 
--- А) Уничтожение зон NoBuild по твоему пути
 task.spawn(function()
     local nbFolder = Workspace:WaitForChild("CurrentGame", 5)
         and Workspace.CurrentGame:WaitForChild("LocalPositions", 5)
@@ -202,7 +201,6 @@ task.spawn(function()
     end
 end)
 
--- Б) Снос 12 Gate и 2 InvisibleGate прямо из Workspace
 task.spawn(function()
     local function checkAndDestroyGate(obj)
         if obj:IsA("BasePart") then
@@ -219,7 +217,7 @@ task.spawn(function()
 end)
 
 --======================================================
--- 5. АНТИ-ДОНАТ ЩИТ (БЕЗОПАСНЫЙ КРАШ-ЗАЩИЩЕННЫЙ ХУК)
+-- 5. АНТИ-ДОНАТ ЩИТ (БЕЗОПАСНЫЙ ХУК)
 --======================================================
 print("антидонат")
 pcall(function()
@@ -268,7 +266,7 @@ pcall(function()
     local title = Instance.new("TextLabel", frame)
     title.Size = UDim2.fromScale(1, 0.12)
     title.BackgroundTransparency = 1
-    title.Text = "SVJ HUB v3.6"
+    title.Text = "SVJ HUB v3.7"
     title.Font = Enum.Font.GothamBold
     title.TextScaled = true
     title.TextColor3 = Color3.fromRGB(255, 215, 0)
@@ -332,7 +330,7 @@ pcall(function()
     
     createRightBtn("TOGGLE ORE ESP", Color3.fromRGB(255, 215, 0), function()
         ESP_ORE_ENABLED = not ESP_ORE_ENABLED
-        for _, h in pairs(ORE_ESPs) do if h then h.Enabled = ESP_ORE_ENABLED end end
+        for _, box in pairs(ORE_ESPs) do if box then box.Visible = ESP_ORE_ENABLED end end
     end)
     
     createRightBtn("TP RED BASE", Color3.fromRGB(255, 100, 100), function() if hrp then hrp.CFrame = CFrame.new(574, 640.5, -5664) + Vector3.new(0, 3, 0) end end)
@@ -350,5 +348,5 @@ pcall(function()
     showBtn.MouseButton1Click:Connect(function() frame.Visible = not frame.Visible end)
 end)
 
-print("SVJ HUB v3.6 УСПЕШНО ЗАПУЩЕН! Ворота испарились, NoBuild снят, донат заблокирован.")
+print("SVJ HUB v3.7 ЗАПУЩЕН! Ошибки ивента устранены, ESP переведен на Adornments.")
 print("конец инжекта")
