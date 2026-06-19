@@ -1,7 +1,7 @@
 --======================================================
 -- WALL WARS UTILITY v3.6 (Final Release - Anti-Bug Engine)
 --======================================================
-
+print ("начало инжекта")
 -- Безопасный обход бага инжектора с DataModel "Ugc"
 local Players = game.Players or game:findService("Players")
 local Workspace = game.Workspace or game:findService("Workspace")
@@ -33,6 +33,7 @@ flingObject.AngularVelocity = Vector3.new(0, 99999, 0)
 --======================================================
 -- 1. БИНДЫ (УПРАВЛЕНИЕ СКОРОСТЬЮ)
 --======================================================
+print ("бинды")
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
@@ -61,6 +62,7 @@ end)
 --======================================================
 -- 2. СЕТЕВАЯ ДЖАМП-АТАКА (ТОЛЬКО SWORD + REMOTE)
 --======================================================
+print ("атака")
 local function getActualSword()
     -- Ищем строго предмет с оригинальным именем "Sword"
     for _, tool in ipairs(player.Backpack:GetChildren()) do
@@ -128,6 +130,7 @@ end)
 --======================================================
 -- 3. ИСПРАВЛЕННЫЙ ТАРГЕТНЫЙ ESP НА ПАПКУ ORES
 --======================================================
+print ("есп")
 local function applyOreESP(part)
     if not part:IsA("BasePart") or ORE_ESPs[part] then return end
     
@@ -159,6 +162,7 @@ end)
 --======================================================
 -- 4. МЕТОД ПРИЗРАКА (СНОС ВОРОТ И NOBUILDZONE)
 --======================================================
+print ("снос")
 local function makeGhost(part, transparency)
     if part and part:IsA("BasePart") then
         part.CanCollide = false
@@ -204,6 +208,7 @@ end)
 --======================================================
 -- 5. АНТИ-ДОНАТ ЩИТ (BLOCK GAMEPASS PROMPTS)
 --======================================================
+print ("антидонат")
 local hook
 hook = hookmetamethod(game, "__index", function(self, key)
     if self == MarketplaceService and (key == "PromptGamePassPurchase" or key == "PromptPurchase" or key == "PromptProductPurchase") then
@@ -218,6 +223,7 @@ end)
 --======================================================
 -- 6. ГРАФИЧЕСКИЙ ИНТЕРФЕЙС (GUI)
 --======================================================
+print ("графон")
 pcall(function()
     local oldGui = player:WaitForChild("PlayerGui"):FindFirstChild("WallWarsHub_Safe")
     if oldGui then oldGui:Destroy() end
@@ -318,3 +324,4 @@ pcall(function()
 end)
 
 print("SVJ HUB v3.6 УСПЕШНО ЗАПУЩЕН! Ворота испарились, NoBuild снят, донат заблокирован.")
+print ("конец инжекта")
